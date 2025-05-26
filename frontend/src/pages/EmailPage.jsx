@@ -1,20 +1,29 @@
-import { useNavigate, useParams } from "react-router"
-import { Button } from "@/components/ui/button"
-import { useContext, useEffect, useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { AuthContext } from "@/components/AuthContext"
-import { formatDate } from "@/lib/utils"
+import { useNavigate, useParams } from "react-router";
+import { Button } from "@/components/ui/button";
+import { useContext, useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { AuthContext } from "@/components/AuthContext";
+import { formatDate } from "@/lib/utils";
 
 export const Email = () => {
-  const { emailCategory, emailId } = useParams()
-  const navigate = useNavigate()
-  const [email, setEmail] = useState({})
-  const [loading, setLoading] = useState(true)
-  const { user } = useContext(AuthContext)
+  const { emailCategory, emailId } = useParams();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useContext(AuthContext);
 
   const deleteEmail = async () => {
-    // TODO: delete email by <emailId>, redirect to the inbox page
-  }
+    try {
+      const res = await fetch(`/api/emails/${emailId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete email");
+      navigate("/c/inbox");
+    } catch (error) {
+      alert(error.message);
+    }
+  };
 
   const reply = () => {
     navigate("/compose", {
@@ -24,16 +33,28 @@ export const Email = () => {
           .map((r) => r.email)
           .join(","),
         subject: `Re: ${email.subject}`,
-        body: `\n\n----\non ${formatDate(email.sentAt)}, ${
-          email.sender.email
-        } wrote:\n\n${email.body}`
-      }
-    })
-  }
+        body: `\n\n----\non ${formatDate(email.sentAt)}, ${email.sender.email} wrote:\n\n${email.body}`,
+      },
+    });
+  };
 
   const toggleArchive = async () => {
-    // TODO: toggle the email archive status to true/false
-  }
+    try {
+      const res = await fetch(`/api/emails/${emailId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ archived: !email.archived }),
+      });
+      if (!res.ok) throw new Error("Failed to update archive status");
+      const updatedEmail = await res.json();
+      setEmail(updatedEmail);
+    } catch (error) {
+      alert(error.message);
+    }
+  };
 
   const formatTextWithNewlines = (text) => {
     return text?.split("\n").map((line, index) => (
@@ -41,41 +62,52 @@ export const Email = () => {
         {line}
         <br />
       </span>
-    ))
-  }
+    ));
+  };
 
   useEffect(() => {
-    // TODO: get email by <emailId>, fill the email state and change loading to false
-  }, [emailId])
+    const fetchEmail = async () => {
+      try {
+        const res = await fetch(`/api/emails/${emailId}`, {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to load email");
+        const data = await res.json();
+        setEmail(data);
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmail();
+  }, [emailId]);
 
   if (loading) {
-    return null
+    return null;
+  }
+
+  if (!email) {
+    return <div>Email not found</div>;
   }
 
   return (
     <div>
       <div>
-        <h2 className="font-medium text-3xl">
-          {/* TODO: show email subject */}
-        </h2>
-        <Badge className="my-4">
-          {/* TODO: show email category */}
-        </Badge>
+        <h2 className="font-medium text-3xl">{email.subject}</h2>
+        <Badge className="my-4">{emailCategory}</Badge>
         <ul className="pb-4 border-b flex flex-col gap-2">
           <li>
             <span className="font-bold">From:</span>{" "}
-            <span>
-              {/* TODO: show email sender */}
-            </span>
+            <span>{email.sender.email}</span>
           </li>
           <li>
             <span className="font-bold">To:</span>{" "}
             <span>{email.recipients.map((r) => r.email).join(", ")}</span>
           </li>
           <li>
-            <span>
-              {/* TODO: show email sent date */}
-            </span>
+            <span>{formatDate(email.sentAt)}</span>
           </li>
         </ul>
         <p className="my-4">{formatTextWithNewlines(email.body)}</p>
@@ -85,9 +117,8 @@ export const Email = () => {
           Reply
         </Button>
         {emailCategory !== "sent" && (
-          // TODO: call toggleArchive function on click
           <Button onClick={toggleArchive} variant="outline">
-            {/* TODO: show "Unarchive" or "Archive" text based on current archived status */}
+            {email.archived ? "Unarchive" : "Archive"}
           </Button>
         )}
         <Button onClick={deleteEmail} variant="outlineDestructive">
@@ -95,5 +126,5 @@ export const Email = () => {
         </Button>
       </div>
     </div>
-  )
-}
+  );
+};

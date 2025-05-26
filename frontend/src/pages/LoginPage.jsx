@@ -1,5 +1,5 @@
 import { Form, Formik, ErrorMessage } from "formik";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -20,21 +20,43 @@ export const LoginPage = () => {
     password: "",
   };
   const [err, setErr] = useState("");
+  const navigate = useNavigate();
 
-  const loginUser = async (loginValues) => {
-    // TODO: login user with <loginValues> and redirect to the inbox page
-    // if any error occurs, fill <err> state (use try/catch)
+  const loginUser = async (loginValues, { setSubmitting }) => {
+    setErr("");
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(loginValues),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Login failed");
+      }
+
+      navigate("/c/inbox");
+    } catch (error) {
+      setErr(error.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="max-w-xs mx-auto my-4 flex flex-col gap-4">
-      {/* TODO: add initial values, onSubmit and validation schema */}
-      <Formik>
+      <Formik
+        initialValues={initialValues}
+        validationSchema={loginSchema}
+        onSubmit={loginUser}
+      >
         {(formikProps) => {
           return (
-            <Form className="flex flex-col gap-4">
+            <Form className="flex flex-col gap-4" autoComplete="off">
               {err && (
-                <div className=" text-sm bg-red-100 p-3 rounded-sm text-red-600">
+                <div className="text-sm bg-red-100 p-3 rounded-sm text-red-600">
                   {err}
                 </div>
               )}

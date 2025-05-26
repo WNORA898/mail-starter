@@ -1,22 +1,24 @@
-import { Outlet, Link } from "react-router"
-import { useContext } from "react"
-import { AuthContext } from "@/components/AuthContext"
-import { ActiveLinkButton, Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import archivedIcon from "@/assets/archived.svg"
-import composeIcon from "@/assets/compose.svg"
-import inboxIcon from "@/assets/inbox.svg"
-import sentIcon from "@/assets/sent.svg"
-import logoutIcon from "@/assets/log-out.svg"
-import loginIcon from "@/assets/login.svg"
-import registerIcon from "@/assets/register.svg"
+import { Outlet, Link, useNavigate } from "react-router";
+import { useContext } from "react";
+import { AuthContext } from "@/components/AuthContext";
+import { ActiveLinkButton, Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import archivedIcon from "@/assets/archived.svg";
+import composeIcon from "@/assets/compose.svg";
+import inboxIcon from "@/assets/inbox.svg";
+import sentIcon from "@/assets/sent.svg";
+import logoutIcon from "@/assets/log-out.svg";
+import loginIcon from "@/assets/login.svg";
+import registerIcon from "@/assets/register.svg";
 
 export const RootLayout = () => {
-  const { user, initialLoading, setUser } = useContext(AuthContext)
+  const { user, initialLoading, setUser } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const logoutUser = async () => {
-    // TODO: clear user state and redirect to the login page
-  }
+    setUser(null);
+    navigate("/login");
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4">
@@ -60,7 +62,7 @@ export const RootLayout = () => {
             </ul>
             <div className="flex items-center gap-4">
               <h1 className="text-lg font-bold hidden md:block">
-                {/* TODO: show user email */}
+                {user.email}
               </h1>
               <Button variant="outline" onClick={logoutUser}>
                 <span className="hidden md:inline-block">Log out</span>
@@ -85,5 +87,5 @@ export const RootLayout = () => {
         <Outlet />
       </main>
     </div>
-  )
-}
+  );
+};

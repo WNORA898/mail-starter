@@ -1,51 +1,35 @@
-import express from "express"
-import mongoose from "mongoose"
-import session from "express-session"
-import MongoStore from "connect-mongo"
-import cors from "cors"
-import dotenv from "dotenv"
-import morgan from "morgan"
-import { handleError } from "./middleware.js"
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import emailRouter from "./routes/emailRoutes.js";
+import userRouter from "./routes/userRoutes.js";
+import cookieParser from "cookie-parser";
 
-dotenv.config({ path: "./config/.env" })
+dotenv.config();
 
-const app = express()
+const app = express();
 
-app.use(
-  cors({
-    origin: process.env.ALLOWED_ORIGIN,
-    credentials: true,
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+}));
+app.use(express.json());
+app.use(cookieParser());
+
+app.use("/api", userRouter);
+app.use("/api/emails", emailRouter);
+
+const PORT = process.env.PORT || 5000;
+const MONGO_URL = process.env.MONGO_URL || "mongodb://127.0.0.1:27017/my-app";
+
+mongoose.connect(MONGO_URL)
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    app.listen(PORT, () => {
+      console.log(`✅ Server running at http://localhost:${PORT}`);
+    });
   })
-)
-
-app.use(express.json())
-app.use(morgan(process.env.NODE_ENV === "development" ? "dev" : "combined"))
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 1000 * 60 * 60 * 24,
-      sameSite: 'strict',
-      secure: process.env.NODE_ENV === "production"
-    },
-    store: MongoStore.create({
-      mongoUrl: process.env.MONGODB_URL
-    })
-  })
-)
-
-// TODO: Add /users and /emails routers (emailRoutes.js, userRoutes.js)
-
-app.use(handleError)
-
-app.listen(process.env.EXPRESS_PORT, async () => {
-  console.log(
-    `Running in ${process.env.NODE_ENV} mode on port ${process.env.EXPRESS_PORT}`
-  )
-
-  await mongoose.connect(process.env.MONGODB_URL)
-  console.log(`Connected to the DB: ${process.env.MONGODB_URL}`)
-})
+  .catch(err => {
+    console.error("❌ MongoDB connection error:", err);
+  });

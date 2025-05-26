@@ -1,5 +1,5 @@
 import { Form, Formik, ErrorMessage } from "formik";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -22,10 +22,8 @@ const emailComposeSchema = object({
 
 export const ComposeEmailPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // recipients field MUST be a comma separated email STRING
-  // for example: demo@email.com,emmet@email.com
-  // (we cal also have a single email without any commas)
   const initialValues = location.state || {
     recipients: "",
     subject: "",
@@ -33,13 +31,33 @@ export const ComposeEmailPage = () => {
   };
 
   const sendEmail = async (emailValues) => {
-    // TODO: send a new email with <emailValues>
+    try {
+      const res = await fetch("/api/emails", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(emailValues),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to send email");
+      }
+
+      navigate("/c/inbox");
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   return (
     <div>
-      {/* TODO: add initial values, onSubmit and validation schema */}
-      <Formik>
+      <Formik
+        initialValues={initialValues}
+        validationSchema={emailComposeSchema}
+        onSubmit={sendEmail}
+      >
         {(formik) => {
           return (
             <Form
@@ -50,10 +68,7 @@ export const ComposeEmailPage = () => {
                 <Label className="mb-4 inline-block" htmlFor="recipients">
                   Recipients
                 </Label>
-                <Input
-                  id="recipients"
-                  {...formik.getFieldProps("recipients")}
-                />
+                <Input id="recipients" {...formik.getFieldProps("recipients")} />
                 <ErrorMessage
                   name="recipients"
                   component="span"
@@ -72,22 +87,19 @@ export const ComposeEmailPage = () => {
                 />
               </div>
               <div>
-                <Label className="mb-4 inline-block" htmlFor="subject">
+                <Label className="mb-4 inline-block" htmlFor="body">
                   Body
                 </Label>
-                <Textarea
-                  ref={textareaRef}
-                  rows="15"
-                  id="body"
-                  {...formik.getFieldProps("body")}
-                />
+                <Textarea id="body" rows="15" {...formik.getFieldProps("body")} />
                 <ErrorMessage
                   name="body"
                   component="span"
                   className="text-red-600"
                 />
               </div>
-              <Button className="self-end">Send</Button>
+              <Button className="self-end" type="submit" disabled={formik.isSubmitting}>
+                {formik.isSubmitting ? "Sending..." : "Send"}
+              </Button>
             </Form>
           );
         }}
